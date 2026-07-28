@@ -23,7 +23,8 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow">2026/27 FRIENDLY PREDICTION LEAGUE</p>
             <h1>
-              Every score. <br />
+              Every score counts.
+              <br />
               Every point moves the table.
             </h1>
             <p className="hero-copy">
