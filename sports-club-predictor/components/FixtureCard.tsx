@@ -9,13 +9,16 @@ const formatter = new Intl.DateTimeFormat("en-TT", {
 export function FixtureCard({ fixture }: { fixture: Fixture }) {
   const hasResult = fixture.homeScore !== null && fixture.awayScore !== null;
   const cutoffPassed = Date.now() >= new Date(fixture.entryDeadline).getTime();
-  const effectiveStatus = cutoffPassed && fixture.status !== "completed" ? "closed" : fixture.status;
+  const effectiveStatus =
+    cutoffPassed && fixture.status !== "completed" ? "closed" : fixture.status;
 
   return (
     <article className="fixture-card">
       <div className="fixture-topline">
         <span>{fixture.competition}</span>
-        <span className={`status status-${effectiveStatus}`}>{effectiveStatus}</span>
+        <span className={`status status-${effectiveStatus}`}>
+          {effectiveStatus}
+        </span>
       </div>
       <div className="fixture-teams">
         <strong>{fixture.homeTeam}</strong>
@@ -25,8 +28,14 @@ export function FixtureCard({ fixture }: { fixture: Fixture }) {
         <strong>{fixture.awayTeam}</strong>
       </div>
       <dl className="fixture-meta">
-        <div><dt>Kickoff</dt><dd>{formatter.format(new Date(fixture.kickoff))}</dd></div>
-        <div><dt>Prediction cutoff</dt><dd>{formatter.format(new Date(fixture.entryDeadline))}</dd></div>
+        <div>
+          <dt>Kickoff</dt>
+          <dd>{formatter.format(new Date(fixture.kickoff))}</dd>
+        </div>
+        <div>
+          <dt>Prediction cutoff</dt>
+          <dd>{formatter.format(new Date(fixture.entryDeadline))}</dd>
+        </div>
       </dl>
     </article>
   );
