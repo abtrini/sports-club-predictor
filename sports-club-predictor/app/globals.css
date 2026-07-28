@@ -63,8 +63,8 @@ nav a:hover { color: var(--cyan); }
 
 .hero {
   color: white;
-  /* background:
-    radial-gradient(circle at 80% 10%, rgba(63,196,255,.28), transparent 28%),
+  background: black;
+    /* radial-gradient(circle at 80% 10%, rgba(63,196,255,.28), transparent 28%),
     linear-gradient(135deg, #071a2f 5%, #0b3974 100%); */
   padding: 74px 0 80px;
 }
