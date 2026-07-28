@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/login/actions";
 import { getAdminUser } from "@/lib/auth";
@@ -53,7 +54,10 @@ export default async function AdminPage({
           <h1>Admin dashboard</h1>
           <p>Signed in as {admin.fullName} · {participantList.length}/20 players</p>
         </div>
-        <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
+        <div className="admin-heading-actions">
+          <Link className="button button-primary" href="/admin/import-fixtures">Import official fixtures</Link>
+          <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
+        </div>
       </div>
       {message && <div className="form-message success-message">{message}</div>}
 

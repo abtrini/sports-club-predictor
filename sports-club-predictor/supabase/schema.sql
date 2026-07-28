@@ -29,6 +29,13 @@ create table if not exists public.fixtures (
   status text not null default 'scheduled' check (status in ('scheduled', 'open', 'closed', 'completed')),
   home_score integer check (home_score is null or home_score >= 0),
   away_score integer check (away_score is null or away_score >= 0),
+  data_source text not null default 'manual',
+  external_fixture_id text,
+  competition_code text,
+  home_team_crest text,
+  away_team_crest text,
+  external_status text,
+  source_updated_at timestamptz,
   created_at timestamptz not null default now(),
   constraint cutoff_before_kickoff check (entry_deadline < kickoff)
 );
@@ -75,6 +82,9 @@ create unique index if not exists one_score_per_participant_fixture_idx
   on public.score_events(participant_id, fixture_id)
   where fixture_id is not null and event_type <> 'manual_adjustment';
 create index if not exists fixtures_kickoff_idx on public.fixtures(kickoff);
+create unique index if not exists fixtures_data_source_external_id_unique
+  on public.fixtures(data_source, external_fixture_id);
+create index if not exists fixtures_competition_code_idx on public.fixtures(competition_code);
 
 -- A security-definer helper avoids recursive RLS checks.
 create or replace function public.is_admin()
