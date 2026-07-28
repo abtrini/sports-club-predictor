@@ -7,8 +7,13 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [standings, fixtures] = await Promise.all([getStandings(), getFixtures()]);
-  const nextFixtures = fixtures.filter((fixture) => fixture.status !== "completed").slice(0, 2);
+  const [standings, fixtures] = await Promise.all([
+    getStandings(),
+    getFixtures(),
+  ]);
+  const nextFixtures = fixtures
+    .filter((fixture) => fixture.status !== "completed")
+    .slice(0, 2);
   const leader = standings[0];
 
   return (
@@ -17,13 +22,21 @@ export default async function HomePage() {
         <div className="page-width hero-grid">
           <div>
             <p className="eyebrow">2026/27 FRIENDLY PREDICTION LEAGUE</p>
-            <h1>Every score counts.<br />Every point moves the table.</h1>
+            <h1>
+              Every score. <br />
+              Every point moves the table.
+            </h1>
             <p className="hero-copy">
-              Register, enter your score predictions, and track all 20 participants as the table changes through the season.
+              Register, enter your score predictions, and track all 20
+              participants as the table changes through the season.
             </p>
             <div className="hero-actions">
-              <Link className="button button-primary" href="/predictions">Enter predictions</Link>
-              <Link className="button button-secondary" href="/register">Register as a player</Link>
+              <Link className="button button-primary" href="/predictions">
+                Enter predictions
+              </Link>
+              <Link className="button button-secondary" href="/register">
+                Register as a player
+              </Link>
             </div>
           </div>
           <div className="leader-card">
@@ -38,7 +51,9 @@ export default async function HomePage() {
       <section className="page-width section-block">
         {!isSupabaseConfigured() && (
           <div className="notice">
-            <strong>Demo mode:</strong> sample data is being displayed. Connect Supabase using the included setup guide to save real participants and points.
+            <strong>Demo mode:</strong> sample data is being displayed. Connect
+            Supabase using the included setup guide to save real participants
+            and points.
           </div>
         )}
         <div className="section-heading">
@@ -60,7 +75,9 @@ export default async function HomePage() {
           <Link href="/fixtures">See all fixtures →</Link>
         </div>
         <div className="fixture-grid">
-          {nextFixtures.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}
+          {nextFixtures.map((fixture) => (
+            <FixtureCard key={fixture.id} fixture={fixture} />
+          ))}
         </div>
       </section>
     </>
