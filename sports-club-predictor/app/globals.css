@@ -254,3 +254,53 @@ footer { background: var(--navy); color: #b9c6d5; padding: 28px 16px; text-align
 @media (max-width: 820px) {
   .prediction-grid { grid-template-columns: 1fr; }
 }
+
+.admin-heading-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.importer-warning { margin-bottom: 22px; border-left: 5px solid #d97706; }
+.importer-warning code { font-weight: 900; }
+.import-filter-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+.import-filter-form label { display: grid; gap: 7px; font-size: .86rem; font-weight: 800; color: #34445a; }
+.import-filter-form input, .import-filter-form select {
+  width: 100%; border: 1px solid #cbd5df; border-radius: 9px; background: white; padding: 10px 12px; color: var(--ink);
+}
+.import-filter-form input:focus, .import-filter-form select:focus { outline: 3px solid rgba(13,91,215,.14); border-color: var(--blue); }
+.importer-results { margin-top: 22px; }
+.compact-heading { margin-bottom: 18px; }
+.import-match-list { display: grid; gap: 10px; }
+.import-match-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.import-match-row:hover { border-color: #8fb4ee; background: #f8fbff; }
+.import-match-row input { width: 19px; height: 19px; accent-color: var(--blue); }
+.import-match-main { display: grid; gap: 5px; }
+.import-match-main strong { line-height: 1.35; }
+.import-match-main strong span { color: var(--muted); font-weight: 700; margin: 0 5px; }
+.import-match-main small { color: var(--muted); }
+.import-badge { border-radius: 999px; padding: 5px 9px; font-size: .74rem; font-weight: 900; white-space: nowrap; }
+.import-badge.new { background: #e6f5ea; color: #167036; }
+.import-badge.imported { background: #edf1f6; color: #526276; }
+.import-actions { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-top: 20px; }
+.import-actions p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+@media (max-width: 900px) {
+  .import-filter-form { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 620px) {
+  .admin-heading-actions, .import-actions { align-items: stretch; flex-direction: column; }
+  .import-filter-form { grid-template-columns: 1fr; }
+  .import-match-row { grid-template-columns: auto minmax(0, 1fr); }
+  .import-badge { grid-column: 2; justify-self: start; }
+}
