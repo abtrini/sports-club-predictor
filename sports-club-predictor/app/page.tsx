@@ -3,14 +3,19 @@ import { FixtureCard } from "@/components/FixtureCard";
 import { StandingsTable } from "@/components/StandingsTable";
 import { getFixtures, getStandings } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [standings, fixtures] = await Promise.all([
+  const [standings, fixtures, user] = await Promise.all([
     getStandings(),
     getFixtures(),
+    getCurrentUser(),
   ]);
+
+  const isAdmin = user?.role === "admin";
+
   const nextFixtures = fixtures
     .filter((fixture) => fixture.status !== "completed")
     .slice(0, 2);
@@ -28,16 +33,49 @@ export default async function HomePage() {
               Every point moves the table.
             </h1>
             <p className="hero-copy">
-              Register, enter your score predictions, and track all 20
-              participants as the table changes through the season.
+              {user
+                ? isAdmin
+                  ? `Welcome back, ${user.fullName}. Manage selected fixtures, participants, results, and competition rules.`
+                  : `Welcome back, ${user.fullName}. Enter or revise your score predictions and follow your position in the table.`
+                : "Create your player account, enter score predictions, and track all 20 participants as the table changes throughout the season."}
             </p>
+
             <div className="hero-actions">
-              <Link className="button button-primary" href="/predictions">
-                Enter predictions
-              </Link>
-              <Link className="button button-secondary" href="/register">
-                Register as a player
-              </Link>
+              {!user && (
+                <>
+                  <Link className="button button-primary" href="/register">
+                    Register as a player
+                  </Link>
+
+                  <Link className="button button-secondary" href="/login">
+                    Sign in
+                  </Link>
+                </>
+              )}
+
+              {user && !isAdmin && (
+                <>
+                  <Link className="button button-primary" href="/predictions">
+                    Enter predictions
+                  </Link>
+
+                  <Link className="button button-secondary" href="/fixtures">
+                    View fixtures
+                  </Link>
+                </>
+              )}
+
+              {user && isAdmin && (
+                <>
+                  <Link className="button button-primary" href="/admin">
+                    Open Admin Portal
+                  </Link>
+
+                  <Link className="button button-secondary" href="/predictions">
+                    My predictions
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="leader-card">
