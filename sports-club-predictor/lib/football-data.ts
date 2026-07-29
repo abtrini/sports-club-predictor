@@ -15,7 +15,15 @@ export const FOOTBALL_COMPETITIONS = [
   { code: "EC", name: "European Championship" },
 ] as const;
 
-export type FootballCompetitionCode = (typeof FOOTBALL_COMPETITIONS)[number]["code"];
+export type FootballCompetitionCode =
+  (typeof FOOTBALL_COMPETITIONS)[number]["code"];
+
+type ScorePair = {
+  home?: number | null;
+  away?: number | null;
+  homeTeam?: number | null;
+  awayTeam?: number | null;
+};
 
 export type FootballDataMatch = {
   id: number;
@@ -44,6 +52,15 @@ export type FootballDataMatch = {
     tla: string | null;
     crest: string | null;
   };
+  score?: {
+    winner?: string | null;
+    duration?: string | null;
+    fullTime?: ScorePair | null;
+    halfTime?: ScorePair | null;
+    regularTime?: ScorePair | null;
+    extraTime?: ScorePair | null;
+    penalties?: ScorePair | null;
+  } | null;
 };
 
 type FootballDataMatchesResponse = {
@@ -69,10 +86,43 @@ function addUtcDays(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function validateCompetitionCode(code: string): asserts code is FootballCompetitionCode {
+function validateCompetitionCode(
+  code: string,
+): asserts code is FootballCompetitionCode {
   if (!FOOTBALL_COMPETITIONS.some((competition) => competition.code === code)) {
     throw new Error("Choose a supported competition.");
   }
+}
+
+function getApiKey() {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("FOOTBALL_DATA_API_KEY has not been configured.");
+  }
+  return apiKey;
+}
+
+async function footballDataRequest(url: URL) {
+  const response = await fetch(url, {
+    headers: {
+      "X-Auth-Token": getApiKey(),
+    },
+    cache: "no-store",
+  });
+
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as FootballDataMatchesResponse;
+
+  if (!response.ok) {
+    const reason =
+      payload.message ||
+      payload.error ||
+      `Football-data request failed (${response.status}).`;
+    throw new Error(reason);
+  }
+
+  return payload.matches ?? [];
 }
 
 export function isFootballDataConfigured() {
@@ -91,7 +141,9 @@ export function getDefaultFootballDateRange() {
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
 
-  if (!year || !month || !day) throw new Error("Unable to calculate today's date.");
+  if (!year || !month || !day) {
+    throw new Error("Unable to calculate today's date.");
+  }
 
   const dateFrom = `${year}-${month}-${day}`;
   return { dateFrom, dateTo: addUtcDays(dateFrom, 7) };
@@ -112,37 +164,46 @@ export async function getFootballDataMatches({
 
   const start = new Date(`${dateFrom}T00:00:00Z`);
   const end = new Date(`${dateTo}T00:00:00Z`);
-  const rangeDays = Math.round((end.getTime() - start.getTime()) / 86_400_000);
+  const rangeDays = Math.round(
+    (end.getTime() - start.getTime()) / 86_400_000,
+  );
 
-  if (rangeDays < 0) throw new Error("End date must be on or after the start date.");
-  if (rangeDays > 31) throw new Error("Choose a date range of 31 days or fewer.");
-
-  const apiKey = process.env.FOOTBALL_DATA_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("FOOTBALL_DATA_API_KEY has not been added to Vercel.");
+  if (rangeDays < 0) {
+    throw new Error("End date must be on or after the start date.");
+  }
+  if (rangeDays > 31) {
+    throw new Error("Choose a date range of 31 days or fewer.");
   }
 
-  const url = new URL(`${API_BASE_URL}/competitions/${competitionCode}/matches`);
+  const url = new URL(
+    `${API_BASE_URL}/competitions/${competitionCode}/matches`,
+  );
   url.searchParams.set("dateFrom", dateFrom);
-  // football-data.org treats dateTo as an exclusive boundary in v4,
-  // so add one day to include the date selected by the administrator.
   url.searchParams.set("dateTo", addUtcDays(dateTo, 1));
 
-  const response = await fetch(url, {
-    headers: {
-      "X-Auth-Token": apiKey,
-    },
-    cache: "no-store",
-  });
+  const matches = await footballDataRequest(url);
 
-  const payload = (await response.json().catch(() => ({}))) as FootballDataMatchesResponse;
+  return matches
+    .filter(
+      (match) => match.status === "SCHEDULED" || match.status === "TIMED",
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime(),
+    );
+}
 
-  if (!response.ok) {
-    const reason = payload.message || payload.error || `Football-data request failed (${response.status}).`;
-    throw new Error(reason);
-  }
+export async function getFootballDataMatchesByIds(
+  ids: string[],
+): Promise<FootballDataMatch[]> {
+  const cleanIds = Array.from(
+    new Set(ids.filter((id) => /^\d+$/.test(id))),
+  ).slice(0, 40);
 
-  return (payload.matches ?? [])
-    .filter((match) => match.status === "SCHEDULED" || match.status === "TIMED")
-    .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
+  if (cleanIds.length === 0) return [];
+
+  const url = new URL(`${API_BASE_URL}/matches`);
+  url.searchParams.set("ids", cleanIds.join(","));
+
+  return footballDataRequest(url);
 }

@@ -3,11 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminUser } from "@/lib/auth";
+import { syncFootballDataResults } from "@/lib/result-sync";
 import { createClient } from "@/lib/supabase/server";
 
 async function requireAdmin() {
   const admin = await getAdminUser();
-  if (!admin) redirect("/login?message=Administrator%20access%20required.&next=%2Fadmin");
+  if (!admin) {
+    redirect(
+      "/login?message=Administrator%20access%20required.&next=%2Fadmin",
+    );
+  }
   return admin;
 }
 
@@ -15,18 +20,32 @@ function adminRedirect(message: string): never {
   redirect(`/admin?message=${encodeURIComponent(message)}`);
 }
 
+function revalidateCompetitionPages() {
+  revalidatePath("/");
+  revalidatePath("/standings");
+  revalidatePath("/fixtures");
+  revalidatePath("/predictions");
+  revalidatePath("/admin");
+}
+
 function trinidadDateTimeToIso(value: string) {
   if (!value) throw new Error("A date and time are required.");
   const withSeconds = value.length === 16 ? `${value}:00` : value;
   const date = new Date(`${withSeconds}-04:00`);
-  if (Number.isNaN(date.getTime())) throw new Error("Invalid date and time.");
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid date and time.");
+  }
   return date.toISOString();
 }
 
 export async function addParticipantAction(formData: FormData) {
   await requireAdmin();
-  const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
-  const shortName = String(formData.get("shortName") ?? "").trim().toUpperCase();
+  const name = String(formData.get("name") ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const shortName = String(formData.get("shortName") ?? "")
+    .trim()
+    .toUpperCase();
   if (name.length < 2) adminRedirect("Participant name is required.");
 
   const supabase = await createClient();
@@ -36,7 +55,9 @@ export async function addParticipantAction(formData: FormData) {
     .eq("active", true);
 
   if (countError) adminRedirect(countError.message);
-  if ((count ?? 0) >= 20) adminRedirect("The league already has 20 active participants.");
+  if ((count ?? 0) >= 20) {
+    adminRedirect("The league already has 20 active participants.");
+  }
 
   const { error } = await supabase.from("participants").insert({
     name,
@@ -44,8 +65,10 @@ export async function addParticipantAction(formData: FormData) {
   });
   if (error) adminRedirect(error.message);
 
-  revalidatePath("/");
-  adminRedirect(`${name} added to the table. They can register later using the same full name to link their account.`);
+  revalidateCompetitionPages();
+  adminRedirect(
+    `${name} added to the table. They can register later using the same full name.`,
+  );
 }
 
 export async function addFixtureAction(formData: FormData) {
@@ -55,57 +78,72 @@ export async function addFixtureAction(formData: FormData) {
   const awayTeam = String(formData.get("awayTeam") ?? "").trim();
 
   try {
-    const kickoff = trinidadDateTimeToIso(String(formData.get("kickoff") ?? ""));
-    if (!competition || !homeTeam || !awayTeam) throw new Error("Complete all fixture fields.");
+    const kickoff = trinidadDateTimeToIso(
+      String(formData.get("kickoff") ?? ""),
+    );
+    if (!competition || !homeTeam || !awayTeam) {
+      throw new Error("Complete all fixture fields.");
+    }
 
     const kickoffDate = new Date(kickoff);
-    if (kickoffDate.getTime() <= Date.now()) throw new Error("Kickoff must be in the future.");
+    if (kickoffDate.getTime() <= Date.now()) {
+      throw new Error("Kickoff must be in the future.");
+    }
 
-    const entryDeadline = new Date(kickoffDate.getTime() - 15 * 60 * 1000).toISOString();
     const supabase = await createClient();
     const { error } = await supabase.from("fixtures").insert({
       competition,
       home_team: homeTeam,
       away_team: awayTeam,
       kickoff,
-      entry_deadline: entryDeadline,
+      entry_deadline: new Date(
+        kickoffDate.getTime() - 15 * 60 * 1000,
+      ).toISOString(),
       status: "scheduled",
+      data_source: "manual",
     });
     if (error) throw error;
 
-    revalidatePath("/");
-    revalidatePath("/fixtures");
-    revalidatePath("/predictions");
-    adminRedirect("Fixture added. Its prediction cutoff is automatically 15 minutes before kickoff.");
+    revalidateCompetitionPages();
+    adminRedirect(
+      "Manual fixture added. Enter its result after the game; points will calculate automatically.",
+    );
   } catch (error) {
-    adminRedirect(error instanceof Error ? error.message : "Unable to add fixture.");
+    adminRedirect(
+      error instanceof Error ? error.message : "Unable to add fixture.",
+    );
   }
 }
 
 export async function addPointsAction(formData: FormData) {
   await requireAdmin();
   const participantId = String(formData.get("participantId") ?? "");
-  const fixtureId = String(formData.get("fixtureId") ?? "") || null;
-  const eventType = String(formData.get("eventType") ?? "manual_adjustment");
   const points = Number(formData.get("points"));
   const reason = String(formData.get("reason") ?? "").trim();
 
-  if (!participantId || !Number.isInteger(points) || points < -10 || points > 10) {
-    adminRedirect("Choose a participant and enter points between -10 and 10.");
+  if (
+    !participantId ||
+    !Number.isInteger(points) ||
+    points < -10 ||
+    points > 10
+  ) {
+    adminRedirect(
+      "Choose a participant and enter an adjustment between -10 and 10 points.",
+    );
   }
 
   const supabase = await createClient();
   const { error } = await supabase.from("score_events").insert({
     participant_id: participantId,
-    fixture_id: fixtureId,
-    event_type: eventType,
+    fixture_id: null,
+    event_type: "manual_adjustment",
     points,
-    reason: reason || "Points entered by administrator",
+    reason: reason || "Manual adjustment entered by administrator",
   });
   if (error) adminRedirect(error.message);
 
-  revalidatePath("/");
-  adminRedirect("Points added and standings recalculated.");
+  revalidateCompetitionPages();
+  adminRedirect("Manual adjustment saved and standings recalculated.");
 }
 
 export async function updateFixtureAction(formData: FormData) {
@@ -117,8 +155,11 @@ export async function updateFixtureAction(formData: FormData) {
   const homeScore = homeScoreRaw === "" ? null : Number(homeScoreRaw);
   const awayScore = awayScoreRaw === "" ? null : Number(awayScoreRaw);
 
-  if (!fixtureId) adminRedirect("Choose a fixture.");
-  if ((homeScore !== null && !Number.isInteger(homeScore)) || (awayScore !== null && !Number.isInteger(awayScore))) {
+  if (!fixtureId) adminRedirect("Choose a manual fixture.");
+  if (
+    (homeScore !== null && !Number.isInteger(homeScore)) ||
+    (awayScore !== null && !Number.isInteger(awayScore))
+  ) {
     adminRedirect("Scores must be whole numbers.");
   }
   if (status === "completed" && (homeScore === null || awayScore === null)) {
@@ -126,27 +167,144 @@ export async function updateFixtureAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: fixture, error: fixtureLookupError } = await supabase
+    .from("fixtures")
+    .select("data_source")
+    .eq("id", fixtureId)
+    .maybeSingle();
+
+  if (fixtureLookupError || !fixture) {
+    adminRedirect("Fixture not found.");
+  }
+  if (fixture.data_source !== "manual") {
+    adminRedirect(
+      "Official fixtures are updated from football-data.org. Use Sync official results instead.",
+    );
+  }
+
   const { error } = await supabase
     .from("fixtures")
-    .update({ status, home_score: homeScore, away_score: awayScore })
+    .update({
+      status,
+      home_score: homeScore,
+      away_score: awayScore,
+      result_basis: "manual",
+      result_synced_at: null,
+    })
     .eq("id", fixtureId);
   if (error) adminRedirect(error.message);
 
-  revalidatePath("/");
-  revalidatePath("/fixtures");
-  revalidatePath("/predictions");
-  adminRedirect("Fixture status and result updated.");
+  if (status === "completed") {
+    const { error: scoringError } = await supabase.rpc(
+      "calculate_fixture_points",
+      { target_fixture_id: fixtureId },
+    );
+    if (scoringError) adminRedirect(scoringError.message);
+  } else {
+    const { error: clearingError } = await supabase.rpc(
+      "clear_fixture_points",
+      { target_fixture_id: fixtureId },
+    );
+    if (clearingError) adminRedirect(clearingError.message);
+  }
+
+  revalidateCompetitionPages();
+  adminRedirect(
+    status === "completed"
+      ? "Manual result saved and player points calculated automatically."
+      : "Manual fixture updated. Automatic points were cleared until a completed result is entered.",
+  );
+}
+
+export async function deleteFixtureAction(formData: FormData) {
+  await requireAdmin();
+
+  const fixtureId = String(formData.get("fixtureId") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+
+  if (!fixtureId) {
+    adminRedirect("Choose a fixture to delete.");
+  }
+
+  if (confirmation !== "DELETE") {
+    adminRedirect('Type the word "DELETE" exactly to confirm fixture deletion.');
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_delete_fixture", {
+    target_fixture_id: fixtureId,
+    confirmation_text: confirmation,
+  });
+
+  if (error) {
+    adminRedirect(error.message);
+  }
+
+  revalidateCompetitionPages();
+
+  const result = data as
+    | {
+        home_team?: string;
+        away_team?: string;
+        predictions_deleted?: number;
+        score_events_deleted?: number;
+      }
+    | null;
+
+  const fixtureName = `${result?.home_team ?? "Fixture"} vs ${
+    result?.away_team ?? "opponent"
+  }`;
+
+  adminRedirect(
+    `${fixtureName} was permanently deleted with ${
+      result?.predictions_deleted ?? 0
+    } prediction(s) and ${
+      result?.score_events_deleted ?? 0
+    } attached score record(s).`,
+  );
+}
+
+export async function syncOfficialResultsAction() {
+  await requireAdmin();
+
+  try {
+    const summary = await syncFootballDataResults();
+    revalidateCompetitionPages();
+
+    const baseMessage =
+      `Checked ${summary.checked} official fixture(s); ` +
+      `${summary.completed} completed, ${summary.pending} still pending, ` +
+      `${summary.recalculated} points calculation(s) updated.`;
+
+    adminRedirect(
+      summary.errors.length > 0
+        ? `${baseMessage} ${summary.errors.length} item(s) need review.`
+        : baseMessage,
+    );
+  } catch (error) {
+    adminRedirect(
+      error instanceof Error
+        ? error.message
+        : "Unable to sync official results.",
+    );
+  }
 }
 
 export async function updateRulesAction(formData: FormData) {
   await requireAdmin();
   const exactScorePoints = Number(formData.get("exactScorePoints"));
-  const correctOutcomePoints = Number(formData.get("correctOutcomePoints"));
+  const correctOutcomePoints = Number(
+    formData.get("correctOutcomePoints"),
+  );
   const winnerOnlyPoints = Number(formData.get("winnerOnlyPoints"));
   const penaltyMode = String(formData.get("penaltyMode") ?? "pending");
   const entryNotes = String(formData.get("entryNotes") ?? "").trim();
 
-  if (![exactScorePoints, correctOutcomePoints, winnerOnlyPoints].every(Number.isInteger)) {
+  if (
+    ![exactScorePoints, correctOutcomePoints, winnerOnlyPoints].every(
+      Number.isInteger,
+    )
+  ) {
     adminRedirect("Rule points must be whole numbers.");
   }
 
@@ -158,9 +316,18 @@ export async function updateRulesAction(formData: FormData) {
     winner_only_points: winnerOnlyPoints,
     penalty_mode: penaltyMode,
     entry_notes: entryNotes,
+    updated_at: new Date().toISOString(),
   });
   if (error) adminRedirect(error.message);
 
+  const { data: recalculated, error: recalculationError } = await supabase.rpc(
+    "recalculate_all_completed_fixtures",
+  );
+  if (recalculationError) adminRedirect(recalculationError.message);
+
+  revalidateCompetitionPages();
   revalidatePath("/rules");
-  adminRedirect("Rules updated.");
+  adminRedirect(
+    `Rules updated. ${Number(recalculated ?? 0)} completed fixture(s) were recalculated automatically.`,
+  );
 }
