@@ -54,6 +54,9 @@ export default async function LoginPage({
             </button>
           </form>
         )}
+        <p className="form-footnote security-recovery-link">
+          <Link href="/forgot-password">Forgot your password?</Link>
+        </p>
         <p className="form-footnote">
           New player?{" "}
           <Link href="/register">Register for the 20-person league.</Link>

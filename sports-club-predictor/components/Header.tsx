@@ -34,7 +34,7 @@ export async function Header() {
           {user ? (
             <>
               <Link href="/predictions">My predictions</Link>
-
+              <Link href="/update-password">Account security</Link>
               {isAdmin && (
                 <Link className="admin-nav-link" href="/admin">
                   Admin Portal
