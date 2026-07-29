@@ -1,6 +1,8 @@
 import type { ClubRules, Fixture, Standing } from "@/lib/types";
 
-const samplePoints = [28, 25, 24, 23, 20, 19, 18, 17, 16, 14, 13, 12, 11, 9, 8, 7, 6, 4, 3, 1];
+const samplePoints = [
+  28, 25, 24, 23, 20, 19, 18, 17, 16, 14, 13, 12, 11, 9, 8, 7, 6, 4, 3, 1,
+];
 
 export const demoStandings: Standing[] = samplePoints.map((points, index) => ({
   id: `demo-${index + 1}`,
@@ -18,6 +20,8 @@ export const demoFixtures: Fixture[] = [
     competition: "Premier League",
     homeTeam: "Sample United",
     awayTeam: "Example City",
+    homeTeamCrest: null,
+    awayTeamCrest: null,
     kickoff: "2026-08-08T14:00:00-04:00",
     entryDeadline: "2026-08-08T13:45:00-04:00",
     status: "open",
@@ -29,6 +33,8 @@ export const demoFixtures: Fixture[] = [
     competition: "Premier League",
     homeTeam: "Demo Rovers",
     awayTeam: "Test Athletic",
+    homeTeamCrest: null,
+    awayTeamCrest: null,
     kickoff: "2026-08-09T11:30:00-04:00",
     entryDeadline: "2026-08-09T11:15:00-04:00",
     status: "scheduled",
@@ -42,5 +48,6 @@ export const demoRules: ClubRules = {
   correctOutcomePoints: 1,
   winnerOnlyPoints: 1,
   penaltyMode: "pending",
-  entryNotes: "Predictions may be entered or changed until 15 minutes before kickoff. The database locks entries automatically at the cutoff.",
+  entryNotes:
+    "Predictions may be entered or changed until 15 minutes before kickoff. The database locks entries automatically at the cutoff.",
 };

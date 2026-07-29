@@ -1,6 +1,6 @@
 import { demoFixtures, demoRules, demoStandings } from "@/lib/demo-data";
-import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 import type { ClubRules, Fixture, Standing } from "@/lib/types";
 
 type ParticipantRow = {
@@ -13,7 +13,12 @@ type ScoreEventRow = {
   participant_id: string;
   fixture_id: string | null;
   points: number;
-  event_type: "exact_score" | "correct_outcome" | "winner_only" | "manual_adjustment";
+  event_type:
+    | "exact_score"
+    | "correct_outcome"
+    | "winner_only"
+    | "no_points"
+    | "manual_adjustment";
 };
 
 type FixtureRow = {
@@ -21,6 +26,8 @@ type FixtureRow = {
   competition: string;
   home_team: string;
   away_team: string;
+  home_team_crest: string | null;
+  away_team_crest: string | null;
   kickoff: string;
   entry_deadline: string;
   status: Fixture["status"];
@@ -40,18 +47,22 @@ export async function getStandings(): Promise<Standing[]> {
   if (!isSupabaseConfigured()) return demoStandings;
 
   const supabase = await createClient();
-  const [{ data: participants, error: participantError }, { data: events, error: eventError }] =
-    await Promise.all([
-      supabase
-        .from("participants")
-        .select("id, name, short_name")
-        .eq("active", true),
-      supabase
-        .from("score_events")
-        .select("participant_id, fixture_id, points, event_type"),
-    ]);
+  const [
+    { data: participants, error: participantError },
+    { data: events, error: eventError },
+  ] = await Promise.all([
+    supabase
+      .from("participants")
+      .select("id, name, short_name")
+      .eq("active", true),
+    supabase
+      .from("score_events")
+      .select("participant_id, fixture_id, points, event_type"),
+  ]);
 
-  if (participantError || eventError || !participants) return demoStandings;
+  if (participantError || eventError || !participants) {
+    return demoStandings;
+  }
 
   const participantRows = participants as ParticipantRow[];
   const eventRows = (events ?? []) as ScoreEventRow[];
@@ -60,8 +71,11 @@ export async function getStandings(): Promise<Standing[]> {
     const participantEvents = eventRows.filter(
       (event) => event.participant_id === participant.id,
     );
+
     const played = new Set(
-      participantEvents.map((event) => event.fixture_id).filter(Boolean),
+      participantEvents
+        .map((event) => event.fixture_id)
+        .filter((fixtureId): fixtureId is string => Boolean(fixtureId)),
     ).size;
 
     return {
@@ -69,12 +83,18 @@ export async function getStandings(): Promise<Standing[]> {
       name: participant.name,
       shortName: participant.short_name,
       played,
-      exactHits: participantEvents.filter((event) => event.event_type === "exact_score")
-        .length,
-      correctOutcomes: participantEvents.filter(
-        (event) => event.event_type === "correct_outcome",
+      exactHits: participantEvents.filter(
+        (event) => event.event_type === "exact_score",
       ).length,
-      points: participantEvents.reduce((total, event) => total + event.points, 0),
+      correctOutcomes: participantEvents.filter(
+        (event) =>
+          event.event_type === "correct_outcome" ||
+          event.event_type === "winner_only",
+      ).length,
+      points: participantEvents.reduce(
+        (total, event) => total + event.points,
+        0,
+      ),
     } satisfies Standing;
   });
 
@@ -91,23 +111,43 @@ export async function getFixtures(
   options: { fallbackToDemo?: boolean } = {},
 ): Promise<Fixture[]> {
   const { fallbackToDemo = true } = options;
-  if (!isSupabaseConfigured()) return demoFixtures;
+
+  if (!isSupabaseConfigured()) {
+    return demoFixtures;
+  }
 
   const supabase = await createClient();
+
   const { data, error } = await supabase
     .from("fixtures")
     .select(
-      "id, competition, home_team, away_team, kickoff, entry_deadline, status, home_score, away_score",
+      `
+        id,
+        competition,
+        home_team,
+        away_team,
+        home_team_crest,
+        away_team_crest,
+        kickoff,
+        entry_deadline,
+        status,
+        home_score,
+        away_score
+      `,
     )
     .order("kickoff", { ascending: true });
 
-  if (error || !data) return fallbackToDemo ? demoFixtures : [];
+  if (error || !data) {
+    return fallbackToDemo ? demoFixtures : [];
+  }
 
   return (data as FixtureRow[]).map((fixture) => ({
     id: fixture.id,
     competition: fixture.competition,
     homeTeam: fixture.home_team,
     awayTeam: fixture.away_team,
+    homeTeamCrest: fixture.home_team_crest,
+    awayTeamCrest: fixture.away_team_crest,
     kickoff: fixture.kickoff,
     entryDeadline: fixture.entry_deadline,
     status: fixture.status,
@@ -120,7 +160,11 @@ export async function getRules(): Promise<ClubRules> {
   if (!isSupabaseConfigured()) return demoRules;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("rules").select("*").eq("id", 1).maybeSingle();
+  const { data, error } = await supabase
+    .from("rules")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
 
   if (error || !data) return demoRules;
   const rule = data as RuleRow;

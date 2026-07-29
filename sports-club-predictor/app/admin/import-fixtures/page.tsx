@@ -1,3 +1,4 @@
+import { getCompetitionTheme } from "@/lib/competition-theme";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminUser } from "@/lib/auth";
@@ -10,7 +11,7 @@ import {
 } from "@/lib/football-data";
 import { createClient } from "@/lib/supabase/server";
 import { importFootballDataFixturesAction } from "./actions";
-
+import { TeamCrest } from "@/components/TeamCrest";
 export const dynamic = "force-dynamic";
 
 function formatKickoff(utcDate: string) {
@@ -41,7 +42,10 @@ export default async function ImportFixturesPage({
   }>;
 }) {
   const admin = await getAdminUser();
-  if (!admin) redirect("/login?message=Administrator%20access%20required.&next=%2Fadmin%2Fimport-fixtures");
+  if (!admin)
+    redirect(
+      "/login?message=Administrator%20access%20required.&next=%2Fadmin%2Fimport-fixtures",
+    );
 
   const params = await searchParams;
   const defaults = getDefaultFootballDateRange();
@@ -56,7 +60,11 @@ export default async function ImportFixturesPage({
 
   if (shouldLoad && isFootballDataConfigured()) {
     try {
-      matches = await getFootballDataMatches({ competitionCode, dateFrom, dateTo });
+      matches = await getFootballDataMatches({
+        competitionCode,
+        dateFrom,
+        dateTo,
+      });
 
       if (matches.length > 0) {
         const supabase = await createClient();
@@ -71,11 +79,13 @@ export default async function ImportFixturesPage({
 
         if (error) throw error;
         for (const row of data ?? []) {
-          if (row.external_fixture_id) existingIds.add(String(row.external_fixture_id));
+          if (row.external_fixture_id)
+            existingIds.add(String(row.external_fixture_id));
         }
       }
     } catch (error) {
-      loadError = error instanceof Error ? error.message : "Unable to load fixtures.";
+      loadError =
+        error instanceof Error ? error.message : "Unable to load fixtures.";
     }
   }
 
@@ -85,18 +95,30 @@ export default async function ImportFixturesPage({
         <div>
           <p className="eyebrow dark">WEEKLY FIXTURE IMPORT</p>
           <h1>Select official games</h1>
-          <p>Load a competition schedule, tick the club&apos;s games, then import them into Supabase.</p>
+          <p>
+            Load a competition schedule, tick the club&apos;s games, then import
+            them into Supabase.
+          </p>
         </div>
-        <Link className="button button-secondary" href="/admin">Back to admin</Link>
+        <Link className="button button-secondary" href="/admin">
+          Back to admin
+        </Link>
       </div>
 
-      {params.message && <div className="form-message success-message">{params.message}</div>}
-      {loadError && <div className="form-message error-message">{loadError}</div>}
+      {params.message && (
+        <div className="form-message success-message">{params.message}</div>
+      )}
+      {loadError && (
+        <div className="form-message error-message">{loadError}</div>
+      )}
 
       {!isFootballDataConfigured() && (
         <article className="content-card importer-warning">
           <h2>API key required</h2>
-          <p>Add <code>FOOTBALL_DATA_API_KEY</code> to Vercel, then redeploy the site.</p>
+          <p>
+            Add <code>FOOTBALL_DATA_API_KEY</code> to Vercel, then redeploy the
+            site.
+          </p>
         </article>
       )}
 
@@ -116,13 +138,22 @@ export default async function ImportFixturesPage({
           </label>
           <label>
             From
-            <input name="dateFrom" type="date" defaultValue={dateFrom} required />
+            <input
+              name="dateFrom"
+              type="date"
+              defaultValue={dateFrom}
+              required
+            />
           </label>
           <label>
             To
             <input name="dateTo" type="date" defaultValue={dateTo} required />
           </label>
-          <button className="button button-primary" type="submit" disabled={!isFootballDataConfigured()}>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={!isFootballDataConfigured()}
+          >
             Load fixtures
           </button>
         </form>
@@ -135,28 +166,85 @@ export default async function ImportFixturesPage({
               <p className="eyebrow dark">OFFICIAL SCHEDULE</p>
               <h2>2. Choose games to import</h2>
             </div>
-            <p>{matches.length} upcoming fixture{matches.length === 1 ? "" : "s"} found</p>
+            <p>
+              {matches.length} upcoming fixture{matches.length === 1 ? "" : "s"}{" "}
+              found
+            </p>
           </div>
 
           {matches.length === 0 ? (
-            <p>No scheduled fixtures were returned for this competition and date range.</p>
+            <p>
+              No scheduled fixtures were returned for this competition and date
+              range.
+            </p>
           ) : (
             <form action={importFootballDataFixturesAction}>
-              <input name="competitionCode" type="hidden" value={competitionCode} />
+              <input
+                name="competitionCode"
+                type="hidden"
+                value={competitionCode}
+              />
               <input name="dateFrom" type="hidden" value={dateFrom} />
               <input name="dateTo" type="hidden" value={dateTo} />
 
               <div className="import-match-list">
                 {matches.map((match) => {
                   const imported = isImported(existingIds, match);
+
+                  const competitionTheme = getCompetitionTheme(
+                    match.competition.code || match.competition.name,
+                  );
+
                   return (
-                    <label className="import-match-row" key={match.id}>
-                      <input name="matchId" type="checkbox" value={match.id} />
+                    <label
+                      className={`import-match-row league-import-row ${competitionTheme}`}
+                      key={match.id}
+                    >
+                      <input
+                        name="matchId"
+                        type="checkbox"
+                        value={match.id}
+                        disabled={imported}
+                      />
+
                       <span className="import-match-main">
-                        <strong>{match.homeTeam.name} <span>vs</span> {match.awayTeam.name}</strong>
-                        <small>{formatKickoff(match.utcDate)} · Trinidad &amp; Tobago time</small>
+                        <span className="competition-badge">
+                          {match.competition.name}
+                        </span>
+
+                        <span className="import-match-teams">
+                          <span className="import-team import-team-home">
+                            <TeamCrest
+                              teamName={match.homeTeam.name}
+                              crestUrl={match.homeTeam.crest}
+                              size={42}
+                            />
+
+                            <strong>{match.homeTeam.name}</strong>
+                          </span>
+
+                          <span className="import-versus">vs</span>
+
+                          <span className="import-team import-team-away">
+                            <TeamCrest
+                              teamName={match.awayTeam.name}
+                              crestUrl={match.awayTeam.crest}
+                              size={42}
+                            />
+
+                            <strong>{match.awayTeam.name}</strong>
+                          </span>
+                        </span>
+
+                        <small>
+                          {formatKickoff(match.utcDate)} · Trinidad &amp; Tobago
+                          time
+                        </small>
                       </span>
-                      <span className={`import-badge ${imported ? "imported" : "new"}`}>
+
+                      <span
+                        className={`import-badge ${imported ? "imported" : "new"}`}
+                      >
                         {imported ? "Already imported" : "New"}
                       </span>
                     </label>
@@ -165,8 +253,12 @@ export default async function ImportFixturesPage({
               </div>
 
               <div className="import-actions">
-                <p>Imported games close automatically 15 minutes before kickoff.</p>
-                <button className="button button-primary" type="submit">Import selected games</button>
+                <p>
+                  Imported games close automatically 15 minutes before kickoff.
+                </p>
+                <button className="button button-primary" type="submit">
+                  Import selected games
+                </button>
               </div>
             </form>
           )}

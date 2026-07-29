@@ -1,0 +1,106 @@
+/* Paste into app/globals.css */
+
+.automation-notice {
+  display: grid;
+  gap: 5px;
+  margin: 24px 0;
+  padding: 18px 20px;
+  border: 1px solid;
+  border-radius: 14px;
+}
+
+.automation-notice-success {
+  color: #075b36;
+  background: #e9f9f0;
+  border-color: #82d9aa;
+}
+
+.admin-source-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.admin-source-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.admin-source-card span,
+.admin-source-card strong,
+.admin-source-card small {
+  display: block;
+}
+
+.admin-source-card span {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-source-card strong {
+  margin: 8px 0;
+  font-size: 2rem;
+}
+
+.official-source-card {
+  border-left: 6px solid #159bd7;
+}
+
+.manual-source-card {
+  border-left: 6px solid #d68a19;
+}
+
+.official-results-card {
+  border-top: 5px solid #159bd7;
+}
+
+.manual-fixture-card,
+.manual-result-card {
+  border-top: 5px solid #d68a19;
+}
+
+.warning-adjustment-card {
+  border-top: 5px solid #c74848;
+  background: #fffafa;
+}
+
+.rules-card {
+  border-top: 5px solid #6957c8;
+}
+
+.button-warning {
+  color: #1e1605;
+  background: #f2b84b;
+  border-color: #d99a22;
+}
+
+.button-warning:hover {
+  background: #ffd070;
+}
+
+.admin-callout-small {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.admin-empty-state {
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+  background: #f5f7fa;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+
+@media (max-width: 720px) {
+  .admin-source-summary {
+    grid-template-columns: 1fr;
+  }
+}

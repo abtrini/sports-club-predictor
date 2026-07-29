@@ -1,5 +1,5 @@
 "use client";
-
+import { TeamCrest } from "@/components/TeamCrest";
 import { useEffect, useMemo, useState } from "react";
 import { savePredictionAction } from "@/app/predictions/actions";
 import type { Fixture, Prediction } from "@/lib/types";
@@ -37,8 +37,12 @@ export function PredictionCard({
     return () => window.clearInterval(timer);
   }, []);
 
-  const deadline = useMemo(() => new Date(fixture.entryDeadline).getTime(), [fixture.entryDeadline]);
-  const statusAllowsEntries = fixture.status === "scheduled" || fixture.status === "open";
+  const deadline = useMemo(
+    () => new Date(fixture.entryDeadline).getTime(),
+    [fixture.entryDeadline],
+  );
+  const statusAllowsEntries =
+    fixture.status === "scheduled" || fixture.status === "open";
   const isOpen = now !== null && now < deadline && statusAllowsEntries;
   const hasResult = fixture.homeScore !== null && fixture.awayScore !== null;
 
@@ -51,17 +55,41 @@ export function PredictionCard({
         </span>
       </div>
 
-      <div className="prediction-teams">
-        <strong>{fixture.homeTeam}</strong>
-        <span>vs</span>
-        <strong>{fixture.awayTeam}</strong>
+      <div className="prediction-teams prediction-teams-with-crests">
+        <div className="prediction-team">
+          <TeamCrest
+            teamName={fixture.homeTeam}
+            crestUrl={fixture.homeTeamCrest}
+            size={48}
+          />
+
+          <strong>{fixture.homeTeam}</strong>
+        </div>
+
+        <span className="prediction-versus">vs</span>
+
+        <div className="prediction-team">
+          <TeamCrest
+            teamName={fixture.awayTeam}
+            crestUrl={fixture.awayTeamCrest}
+            size={48}
+          />
+
+          <strong>{fixture.awayTeam}</strong>
+        </div>
       </div>
 
       <div className="prediction-times">
-        <p><b>Kickoff:</b> {formatter.format(new Date(fixture.kickoff))}</p>
-        <p><b>Locks:</b> {formatter.format(new Date(fixture.entryDeadline))}</p>
+        <p>
+          <b>Kickoff:</b> {formatter.format(new Date(fixture.kickoff))}
+        </p>
+        <p>
+          <b>Locks:</b> {formatter.format(new Date(fixture.entryDeadline))}
+        </p>
         <p className={isOpen ? "countdown-open" : "countdown-closed"}>
-          {now === null ? "Checking entry window…" : formatRemaining(deadline - now)}
+          {now === null
+            ? "Checking entry window…"
+            : formatRemaining(deadline - now)}
         </p>
       </div>
 
@@ -105,14 +133,18 @@ export function PredictionCard({
             <>
               <span>Your locked prediction</span>
               <strong>
-                {fixture.homeTeam} {prediction.predictedHomeScore}–{prediction.predictedAwayScore} {fixture.awayTeam}
+                {fixture.homeTeam} {prediction.predictedHomeScore}–
+                {prediction.predictedAwayScore} {fixture.awayTeam}
               </strong>
             </>
           ) : (
             <span>No prediction was submitted before the cutoff.</span>
           )}
           {hasResult && (
-            <small>Final score: {fixture.homeTeam} {fixture.homeScore}–{fixture.awayScore} {fixture.awayTeam}</small>
+            <small>
+              Final score: {fixture.homeTeam} {fixture.homeScore}–
+              {fixture.awayScore} {fixture.awayTeam}
+            </small>
           )}
         </div>
       )}

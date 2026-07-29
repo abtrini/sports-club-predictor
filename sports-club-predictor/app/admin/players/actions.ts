@@ -117,6 +117,59 @@ export async function setParticipantActiveAction(formData: FormData) {
   );
 }
 
+export async function updateParticipantAdminRoleAction(formData: FormData) {
+  const currentAdmin = await requireAdmin();
+
+  const participantId = String(formData.get("participantId") ?? "");
+  const newRole = String(formData.get("newRole") ?? "");
+
+  if (!participantId) {
+    redirectWithMessage("Choose a registered player.", "danger");
+  }
+
+  if (newRole !== "member" && newRole !== "admin") {
+    redirectWithMessage("Choose a valid account role.", "danger");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_set_participant_role", {
+    target_participant_id: participantId,
+    new_role: newRole,
+  });
+
+  if (error) {
+    redirectWithMessage(error.message, "danger");
+  }
+
+  revalidateParticipantPages();
+
+  const result = data as
+    | {
+        name?: string;
+        previous_role?: "member" | "admin";
+        new_role?: "member" | "admin";
+        user_id?: string;
+      }
+    | null;
+
+  const playerName = result?.name || "The player";
+  const targetUserId = result?.user_id;
+
+  if (newRole === "member" && targetUserId === currentAdmin.id) {
+    redirectWithMessage(
+      "Your own administrator access cannot be removed from this screen.",
+      "danger",
+    );
+  }
+
+  redirectWithMessage(
+    newRole === "admin"
+      ? `${playerName} now has administrator access.`
+      : `${playerName}'s administrator access was removed.`,
+    newRole === "admin" ? "success" : "warning",
+  );
+}
+
 export async function deleteParticipantAction(formData: FormData) {
   await requireAdmin();
 

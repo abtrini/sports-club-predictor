@@ -1,0 +1,31 @@
+name: Sync football results
+
+on:
+  schedule:
+    # Runs hourly at minute 17. GitHub schedules use UTC.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call the protected result-sync endpoint
+        env:
+          RESULT_SYNC_URL: ${{ secrets.RESULT_SYNC_URL }}
+          RESULT_SYNC_SECRET: ${{ secrets.RESULT_SYNC_SECRET }}
+        run: |
+          if [ -z "$RESULT_SYNC_URL" ] || [ -z "$RESULT_SYNC_SECRET" ]; then
+            echo "RESULT_SYNC_URL or RESULT_SYNC_SECRET is missing."
+            exit 1
+          fi
+
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --request GET \
+            --header "Authorization: Bearer $RESULT_SYNC_SECRET" \
+            "$RESULT_SYNC_URL"
