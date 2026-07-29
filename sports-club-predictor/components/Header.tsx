@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/login/actions";
 import { getCurrentUser } from "@/lib/auth";
-
+import Image from "next/image";
 const publicLinks = [
   ["/standings", "Standings"],
   ["/fixtures", "Fixtures"],
@@ -15,11 +15,22 @@ export async function Header() {
   return (
     <header className="site-header">
       <div className="header-inner">
-        <Link className="brand" href="/">
-          <span className="brand-mark">SC</span>
+        <Link
+          className="brand"
+          href="/"
+          aria-label="Sports Club Predictor home"
+        >
+          <Image
+            className="brand-logo"
+            src="/gscc-logo.png"
+            alt="Guardian Sports and Cultural Club logo"
+            width={54}
+            height={54}
+            priority
+          />
 
-          <span>
-            <strong>Sports Club Predictor</strong>
+          <span className="brand-text">
+            <strong>GSCC Predictor</strong>
             <small>2026/27 season</small>
           </span>
         </Link>
@@ -34,7 +45,9 @@ export async function Header() {
           {user ? (
             <>
               <Link href="/predictions">My predictions</Link>
-              <Link href="/update-password">Account security</Link>
+
+              <Link href="/account">Account</Link>
+
               {isAdmin && (
                 <Link className="admin-nav-link" href="/admin">
                   Admin Portal
