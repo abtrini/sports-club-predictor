@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { signOutAction } from "@/app/login/actions";
 import { getAdminUser } from "@/lib/auth";
 import { getFixtures, getRules } from "@/lib/data";
@@ -9,24 +10,12 @@ import {
   addFixtureAction,
   addParticipantAction,
   addPointsAction,
-  deleteFixtureAction,
   syncOfficialResultsAction,
   updateFixtureAction,
   updateRulesAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
-
-function formatFixtureKickoff(kickoff: string) {
-  return new Intl.DateTimeFormat("en-TT", {
-    timeZone: "America/Port_of_Spain",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(kickoff));
-}
 
 export default async function AdminPage({
   searchParams,
@@ -42,7 +31,7 @@ export default async function AdminPage({
           <h1>Admin setup required</h1>
           <p>
             The public site is in demo mode. Configure Supabase and create the
-            first admin using README.md.
+            first administrator using the setup guide.
           </p>
         </div>
       </section>
@@ -50,13 +39,13 @@ export default async function AdminPage({
   }
 
   const admin = await getAdminUser();
+
   if (!admin) {
-    redirect(
-      "/login?message=Administrator%20access%20required.&next=%2Fadmin",
-    );
+    redirect("/login?message=Administrator%20access%20required.&next=%2Fadmin");
   }
 
   const supabase = await createClient();
+
   const [{ data: participants }, fixtures, rules] = await Promise.all([
     supabase
       .from("participants")
@@ -71,12 +60,15 @@ export default async function AdminPage({
     id: string;
     name: string;
   }>;
+
   const manualFixtures = fixtures.filter(
     (fixture) => (fixture.dataSource ?? "manual") === "manual",
   );
+
   const officialFixtures = fixtures.filter(
     (fixture) => fixture.dataSource === "football-data",
   );
+
   const pendingOfficial = officialFixtures.filter(
     (fixture) => fixture.status !== "completed",
   ).length;
@@ -93,10 +85,7 @@ export default async function AdminPage({
         </div>
 
         <div className="admin-heading-actions">
-          <Link
-            className="button button-primary"
-            href="/admin/import-fixtures"
-          >
+          <Link className="button button-primary" href="/admin/import-fixtures">
             Import official fixtures
           </Link>
 
@@ -117,8 +106,9 @@ export default async function AdminPage({
       <div className="automation-notice automation-notice-success">
         <strong>Automatic scoring is active.</strong>
         <span>
-          Exact-score and correct-outcome points are calculated from the saved
-          rules whenever a final score is received.
+          Exact-score, correct-winner, correct-draw and one-team-score points
+          are calculated automatically whenever a completed result is saved.
+          Only the highest applicable award is given.
         </span>
       </div>
 
@@ -141,7 +131,7 @@ export default async function AdminPage({
           <p className="eyebrow dark">OFFICIAL RESULTS</p>
           <h2>Sync API scores</h2>
           <p className="card-helper">
-            Imported fixtures stay separate from manually entered fixtures.
+            Imported fixtures remain separate from manually entered fixtures.
             Finished scores are pulled from football-data.org and player points
             are recalculated automatically.
           </p>
@@ -163,15 +153,18 @@ export default async function AdminPage({
             Pre-add a player to the table. When they register with the same full
             name, their account is linked automatically.
           </p>
+
           <form action={addParticipantAction} className="stack-form">
             <label>
               Full name
               <input name="name" required placeholder="e.g. Anthony Bobb" />
             </label>
+
             <label>
               Initials or short name
               <input name="shortName" maxLength={4} placeholder="AB" />
             </label>
+
             <button className="button button-primary" type="submit">
               Add participant
             </button>
@@ -183,27 +176,32 @@ export default async function AdminPage({
           <h2>Add game not available in the API</h2>
           <p className="card-helper">
             Use this only when the game does not appear in the official fixture
-            importer. The cutoff remains automatic.
+            importer. The prediction cutoff remains automatic.
           </p>
+
           <form action={addFixtureAction} className="stack-form">
             <label>
               Competition
               <input name="competition" required placeholder="Club friendly" />
             </label>
+
             <div className="two-column-fields">
               <label>
                 Home team
                 <input name="homeTeam" required />
               </label>
+
               <label>
                 Away team
                 <input name="awayTeam" required />
               </label>
             </div>
+
             <label>
               Kickoff (Trinidad time)
               <input name="kickoff" type="datetime-local" required />
             </label>
+
             <button className="button button-primary" type="submit">
               Add manual fixture
             </button>
@@ -214,7 +212,7 @@ export default async function AdminPage({
           <p className="eyebrow dark">MANUAL RESULT</p>
           <h2>Enter final score</h2>
           <p className="card-helper">
-            Only manually created fixtures appear here. After you mark the game
+            Only manually created fixtures appear here. After the game is marked
             completed, points are calculated automatically.
           </p>
 
@@ -226,9 +224,11 @@ export default async function AdminPage({
                   <option value="" disabled>
                     Select manual fixture
                   </option>
+
                   {manualFixtures.map((fixture) => (
                     <option key={fixture.id} value={fixture.id}>
-                      {fixture.homeTeam} vs {fixture.awayTeam}
+                      {fixture.competition} — {fixture.homeTeam} vs{" "}
+                      {fixture.awayTeam}
                     </option>
                   ))}
                 </select>
@@ -241,6 +241,7 @@ export default async function AdminPage({
                   Home score
                   <input name="homeScore" type="number" min="0" required />
                 </label>
+
                 <label>
                   Away score
                   <input name="awayScore" type="number" min="0" required />
@@ -258,52 +259,6 @@ export default async function AdminPage({
           )}
         </article>
 
-        <article className="content-card fixture-delete-card">
-          <p className="eyebrow dark">DANGER ZONE</p>
-          <h2>Delete a fixture</h2>
-          <p className="card-helper">
-            Deleting a fixture also removes every prediction and score record
-            attached to it. This applies to both manual and API fixtures and
-            cannot be undone.
-          </p>
-
-          {fixtures.length > 0 ? (
-            <form action={deleteFixtureAction} className="stack-form">
-              <label>
-                Fixture
-                <select name="fixtureId" required defaultValue="">
-                  <option value="" disabled>
-                    Select fixture to delete
-                  </option>
-                  {fixtures.map((fixture) => (
-                    <option key={fixture.id} value={fixture.id}>
-                      [{fixture.dataSource === "football-data" ? "API" : "Manual"}]{" "}
-                      {fixture.homeTeam} vs {fixture.awayTeam} ·{" "}
-                      {formatFixtureKickoff(fixture.kickoff)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Type DELETE to confirm
-                <input
-                  name="confirmation"
-                  autoComplete="off"
-                  placeholder="DELETE"
-                  required
-                />
-              </label>
-
-              <button className="button button-danger" type="submit">
-                Delete fixture permanently
-              </button>
-            </form>
-          ) : (
-            <div className="admin-empty-state">No fixtures are available.</div>
-          )}
-        </article>
-
         <article className="content-card warning-adjustment-card">
           <p className="eyebrow dark">EXCEPTION ONLY</p>
           <h2>Manual points adjustment</h2>
@@ -312,6 +267,7 @@ export default async function AdminPage({
             bonus, deduction or correction that the automatic rules cannot
             represent.
           </p>
+
           <form action={addPointsAction} className="stack-form">
             <label>
               Participant
@@ -319,6 +275,7 @@ export default async function AdminPage({
                 <option value="" disabled>
                   Select participant
                 </option>
+
                 {participantList.map((participant) => (
                   <option key={participant.id} value={participant.id}>
                     {participant.name}
@@ -326,6 +283,7 @@ export default async function AdminPage({
                 ))}
               </select>
             </label>
+
             <label>
               Points adjustment
               <input
@@ -337,6 +295,7 @@ export default async function AdminPage({
                 required
               />
             </label>
+
             <label>
               Required reason
               <input
@@ -345,6 +304,7 @@ export default async function AdminPage({
                 placeholder="e.g. Committee-approved one-point deduction"
               />
             </label>
+
             <button className="button button-warning" type="submit">
               Apply manual adjustment
             </button>
@@ -352,37 +312,70 @@ export default async function AdminPage({
         </article>
 
         <article className="content-card rules-card">
+          <p className="eyebrow dark">POINTS SETTINGS</p>
           <h2>Scoring rules</h2>
           <p className="card-helper">
-            Saving rule changes automatically recalculates every completed game.
+            Saving these values automatically recalculates every completed game.
+            Awards do not stack; each prediction receives only the highest
+            scoring condition it satisfies.
           </p>
+
           <form action={updateRulesAction} className="stack-form">
-            <div className="three-column-fields">
+            <div className="four-column-fields">
               <label>
                 Exact score
                 <input
                   name="exactScorePoints"
                   type="number"
+                  min="0"
+                  max="10"
                   defaultValue={rules.exactScorePoints}
+                  required
                 />
               </label>
+
               <label>
-                Correct outcome
+                Correct winner
                 <input
-                  name="correctOutcomePoints"
+                  name="correctWinnerPoints"
                   type="number"
-                  defaultValue={rules.correctOutcomePoints}
+                  min="0"
+                  max="10"
+                  defaultValue={rules.correctWinnerPoints}
+                  required
                 />
               </label>
+
               <label>
-                Winner-only
+                Correct draw
                 <input
-                  name="winnerOnlyPoints"
+                  name="correctDrawPoints"
                   type="number"
-                  defaultValue={rules.winnerOnlyPoints}
+                  min="0"
+                  max="10"
+                  defaultValue={rules.correctDrawPoints}
+                  required
+                />
+              </label>
+
+              <label>
+                One team score
+                <input
+                  name="oneTeamScorePoints"
+                  type="number"
+                  min="0"
+                  max="10"
+                  defaultValue={rules.oneTeamScorePoints}
+                  required
                 />
               </label>
             </div>
+
+            <div className="notice">
+              <strong>Recommended values:</strong> exact score 3, correct winner
+              2, correct draw 1, and one team score 1.
+            </div>
+
             <label>
               Knockout/penalty score basis
               <select name="penaltyMode" defaultValue={rules.penaltyMode}>
@@ -394,6 +387,7 @@ export default async function AdminPage({
                 <option value="after_penalties">Score after penalties</option>
               </select>
             </label>
+
             <label>
               Entry note
               <textarea
@@ -402,6 +396,7 @@ export default async function AdminPage({
                 defaultValue={rules.entryNotes}
               />
             </label>
+
             <button className="button button-primary" type="submit">
               Save rules and recalculate
             </button>

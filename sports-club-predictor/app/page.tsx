@@ -1,25 +1,80 @@
 import Link from "next/link";
+
+import { DeadlineCountdown } from "@/components/DeadlineCountdown";
 import { FixtureCard } from "@/components/FixtureCard";
 import { StandingsTable } from "@/components/StandingsTable";
+import { getCurrentUser } from "@/lib/auth";
 import { getFixtures, getStandings } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [standings, fixtures, user] = await Promise.all([
+  const [user, standings, fixtures] = await Promise.all([
+    getCurrentUser(),
     getStandings(),
     getFixtures(),
-    getCurrentUser(),
   ]);
 
-  const isAdmin = user?.role === "admin";
+  /*
+   * This page is force-dynamic. Capture one timestamp for this
+   * request so every fixture is sorted against the same moment.
+   */
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
 
-  const nextFixtures = fixtures
-    .filter((fixture) => fixture.status !== "completed")
-    .slice(0, 2);
+  /*
+   * Upcoming games:
+   * - exclude completed fixtures
+   * - exclude games whose kickoff has already passed
+   * - show the nearest kickoff first
+   */
+  const upcomingFixtures = fixtures
+    .filter(
+      (fixture) =>
+        fixture.status !== "completed" &&
+        new Date(fixture.kickoff).getTime() >= now,
+    )
+    .sort(
+      (a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime(),
+    );
+
+  const nextFixtures = upcomingFixtures.slice(0, 4);
+
+  /*
+   * The countdown targets the first upcoming fixture whose
+   * prediction deadline has not yet passed.
+   */
+  const nextOpenFixture = upcomingFixtures.find(
+    (fixture) => new Date(fixture.entryDeadline).getTime() > now,
+  );
+
+  /*
+   * Recent results:
+   * - completed fixtures only
+   * - both final scores must be present
+   * - most recently played game first
+   */
+  const recentResults = fixtures
+    .filter(
+      (fixture) =>
+        fixture.status === "completed" &&
+        fixture.homeScore !== null &&
+        fixture.awayScore !== null,
+    )
+    .sort(
+      (a, b) => new Date(b.kickoff).getTime() - new Date(a.kickoff).getTime(),
+    )
+    .slice(0, 4);
+
   const leader = standings[0];
+
+  const participantPosition = user?.participantId
+    ? standings.findIndex((standing) => standing.id === user.participantId) + 1
+    : 0;
+
+  const participantStanding =
+    participantPosition > 0 ? standings[participantPosition - 1] : null;
 
   return (
     <>
@@ -27,21 +82,40 @@ export default async function HomePage() {
         <div className="page-width hero-grid">
           <div>
             <p className="eyebrow">2026/27 FRIENDLY PREDICTION LEAGUE</p>
+
             <h1>
               Every score counts.
               <br />
               Every point moves the table.
             </h1>
+
             <p className="hero-copy">
               {user
-                ? isAdmin
-                  ? `Welcome back, ${user.fullName}. Manage selected fixtures, participants, results, and competition rules.`
-                  : `Welcome back, ${user.fullName}. Enter or revise your score predictions and follow your position in the table.`
-                : "Create your player account, enter score predictions, and track all 20 participants as the table changes throughout the season."}
+                ? `Welcome back, ${user.fullName}. Check the next prediction deadline and keep your entries up to date.`
+                : "Register, enter your score predictions, and track all 20 participants as the table changes through the season."}
             </p>
 
             <div className="hero-actions">
-              {!user && (
+              {user ? (
+                <>
+                  {user.role === "admin" ? (
+                    <Link className="button button-primary" href="/admin">
+                      Open Admin Portal
+                    </Link>
+                  ) : (
+                    <Link className="button button-primary" href="/predictions">
+                      Enter predictions
+                    </Link>
+                  )}
+
+                  <Link
+                    className="button button-secondary"
+                    href={user.role === "admin" ? "/predictions" : "/fixtures"}
+                  >
+                    {user.role === "admin" ? "My predictions" : "View fixtures"}
+                  </Link>
+                </>
+              ) : (
                 <>
                   <Link className="button button-primary" href="/register">
                     Register as a player
@@ -52,72 +126,116 @@ export default async function HomePage() {
                   </Link>
                 </>
               )}
-
-              {user && !isAdmin && (
-                <>
-                  <Link className="button button-primary" href="/predictions">
-                    Enter predictions
-                  </Link>
-
-                  <Link className="button button-secondary" href="/fixtures">
-                    View fixtures
-                  </Link>
-                </>
-              )}
-
-              {user && isAdmin && (
-                <>
-                  <Link className="button button-primary" href="/admin">
-                    Open Admin Portal
-                  </Link>
-
-                  <Link className="button button-secondary" href="/predictions">
-                    My predictions
-                  </Link>
-                </>
-              )}
             </div>
           </div>
+
           <div className="leader-card">
-            <span>Current leader</span>
-            <strong>{leader?.name ?? "No participants yet"}</strong>
-            <b>{leader?.points ?? 0} pts</b>
-            <small>{leader?.exactHits ?? 0} exact-score hits</small>
+            {participantStanding ? (
+              <>
+                <span>Your current position</span>
+                <strong>{participantStanding.name}</strong>
+                <b>#{participantPosition}</b>
+                <small>
+                  {participantStanding.points} points ·{" "}
+                  {participantStanding.exactHits} exact-score hits
+                </small>
+              </>
+            ) : (
+              <>
+                <span>Current leader</span>
+                <strong>{leader?.name ?? "No participants yet"}</strong>
+                <b>{leader?.points ?? 0} pts</b>
+                <small>{leader?.exactHits ?? 0} exact-score hits</small>
+              </>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="page-width section-block">
-        {!isSupabaseConfigured() && (
+      {!isSupabaseConfigured() && (
+        <section className="page-width">
           <div className="notice">
             <strong>Demo mode:</strong> sample data is being displayed. Connect
             Supabase using the included setup guide to save real participants
             and points.
           </div>
-        )}
+        </section>
+      )}
+
+      {nextOpenFixture && (
+        <section className="page-width deadline-section">
+          <DeadlineCountdown
+            deadline={nextOpenFixture.entryDeadline}
+            homeTeam={nextOpenFixture.homeTeam}
+            awayTeam={nextOpenFixture.awayTeam}
+          />
+        </section>
+      )}
+
+      <section className="page-width section-block">
         <div className="section-heading">
           <div>
-            <p className="eyebrow dark">LIVE TABLE</p>
-            <h2>Club standings</h2>
+            <p className="eyebrow dark">NEXT SELECTED GAMES</p>
+            <h2>Upcoming fixtures</h2>
+            <p>The nearest scheduled games are shown first.</p>
           </div>
-          <p>Sorted by points, then exact scores, then correct outcomes.</p>
+
+          <Link href="/fixtures">See all fixtures →</Link>
         </div>
-        <StandingsTable standings={standings} />
+
+        {nextFixtures.length > 0 ? (
+          <div className="fixture-grid">
+            {nextFixtures.map((fixture) => (
+              <FixtureCard key={fixture.id} fixture={fixture} />
+            ))}
+          </div>
+        ) : (
+          <div className="content-card empty-state">
+            <h3>No upcoming fixtures</h3>
+            <p>The administrator has not selected the next games yet.</p>
+          </div>
+        )}
       </section>
 
       <section className="page-width section-block">
         <div className="section-heading">
           <div>
-            <p className="eyebrow dark">NEXT UP</p>
-            <h2>Selected fixtures</h2>
+            <p className="eyebrow dark">LAST SELECTED FIXTURES</p>
+            <h2>Recent results</h2>
+            <p>The latest completed prediction fixtures are shown here.</p>
           </div>
-          <Link href="/fixtures">See all fixtures →</Link>
+
+          <Link href="/fixtures">View all results →</Link>
         </div>
-        <div className="fixture-grid">
-          {nextFixtures.map((fixture) => (
-            <FixtureCard key={fixture.id} fixture={fixture} />
-          ))}
+
+        {recentResults.length > 0 ? (
+          <div className="fixture-grid">
+            {recentResults.map((fixture) => (
+              <FixtureCard key={fixture.id} fixture={fixture} />
+            ))}
+          </div>
+        ) : (
+          <div className="content-card empty-state">
+            <h3>No completed results</h3>
+            <p>
+              Completed fixture scores will appear here after they are received
+              from the API or entered by an administrator.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section className="page-width section-block">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow dark">LIVE TABLE</p>
+            <h2>Club standings</h2>
+          </div>
+
+          <Link href="/standings">View full standings →</Link>
         </div>
+
+        <StandingsTable standings={standings} />
       </section>
     </>
   );

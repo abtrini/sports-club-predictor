@@ -1315,3 +1315,169 @@ footer { background: var(--navy); color: #b9c6d5; padding: 28px 16px; text-align
     width: 100%;
   }
 }
+
+/* =========================================================
+   UPCOMING FIXTURES, COUNTDOWN AND PREDICTION RESULTS
+   ========================================================= */
+
+.deadline-section {
+  margin-top: 34px;
+}
+
+.next-deadline-card {
+  padding: 26px;
+  color: white;
+  background:
+    radial-gradient(
+      circle at 85% 10%,
+      rgba(63, 196, 255, 0.3),
+      transparent 35%
+    ),
+    linear-gradient(135deg, #071a2f, #0b3974);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.next-deadline-card > span {
+  color: var(--cyan);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.next-deadline-card h2 {
+  margin: 8px 0 2px;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+}
+
+.next-deadline-card p {
+  margin: 0 0 20px;
+  color: #cbd8e6;
+}
+
+.deadline-closed {
+  background: #4a5565;
+}
+
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.countdown-grid div {
+  padding: 15px 10px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+}
+
+.countdown-grid strong,
+.countdown-grid small {
+  display: block;
+}
+
+.countdown-grid strong {
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  line-height: 1;
+}
+
+.countdown-grid small {
+  margin-top: 7px;
+  color: #cad7e5;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.awaiting-results-section {
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.prediction-section {
+  margin-top: 44px;
+}
+
+.prediction-section + .prediction-section {
+  margin-top: 58px;
+}
+
+.completed-predictions-section {
+  padding-top: 34px;
+  border-top: 1px solid var(--line);
+}
+
+.prediction-result-summary {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.prediction-result-summary > span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.points-earned {
+  display: inline-flex;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+
+.positive-points {
+  color: #146c3b;
+  background: #def5e6;
+}
+
+.zero-points {
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.points-pending {
+  color: #8b5200;
+  font-weight: 800;
+}
+
+.scoring-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.four-column-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .scoring-rule-grid,
+  .four-column-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .countdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scoring-rule-grid,
+  .four-column-fields {
+    grid-template-columns: 1fr;
+  }
+}

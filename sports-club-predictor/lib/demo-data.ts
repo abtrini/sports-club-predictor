@@ -45,9 +45,11 @@ export const demoFixtures: Fixture[] = [
 
 export const demoRules: ClubRules = {
   exactScorePoints: 3,
-  correctOutcomePoints: 1,
+  correctWinnerPoints: 2,
+  correctDrawPoints: 1,
+  oneTeamScorePoints: 1,
   winnerOnlyPoints: 1,
   penaltyMode: "pending",
   entryNotes:
-    "Predictions may be entered or changed until 15 minutes before kickoff. The database locks entries automatically at the cutoff.",
+    "Predictions may be entered or changed until 15 minutes before kickoff.",
 };
