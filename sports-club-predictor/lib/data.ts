@@ -15,6 +15,9 @@ type ScoreEventRow = {
   points: number;
   event_type:
     | "exact_score"
+    | "correct_winner"
+    | "correct_draw"
+    | "one_team_score"
     | "correct_outcome"
     | "winner_only"
     | "no_points"
@@ -37,7 +40,9 @@ type FixtureRow = {
 
 type RuleRow = {
   exact_score_points: number;
-  correct_outcome_points: number;
+  correct_winner_points: number;
+  correct_draw_points: number;
+  one_team_score_points: number;
   winner_only_points: number;
   penalty_mode: ClubRules["penaltyMode"];
   entry_notes: string;
@@ -88,6 +93,8 @@ export async function getStandings(): Promise<Standing[]> {
       ).length,
       correctOutcomes: participantEvents.filter(
         (event) =>
+          event.event_type === "correct_winner" ||
+          event.event_type === "correct_draw" ||
           event.event_type === "correct_outcome" ||
           event.event_type === "winner_only",
       ).length,
@@ -171,7 +178,9 @@ export async function getRules(): Promise<ClubRules> {
 
   return {
     exactScorePoints: rule.exact_score_points,
-    correctOutcomePoints: rule.correct_outcome_points,
+    correctWinnerPoints: rule.correct_winner_points,
+    correctDrawPoints: rule.correct_draw_points,
+    oneTeamScorePoints: rule.one_team_score_points,
     winnerOnlyPoints: rule.winner_only_points,
     penaltyMode: rule.penalty_mode,
     entryNotes: rule.entry_notes,

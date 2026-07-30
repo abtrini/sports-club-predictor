@@ -9,9 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 async function requireAdmin() {
   const admin = await getAdminUser();
   if (!admin) {
-    redirect(
-      "/login?message=Administrator%20access%20required.&next=%2Fadmin",
-    );
+    redirect("/login?message=Administrator%20access%20required.&next=%2Fadmin");
   }
   return admin;
 }
@@ -227,7 +225,9 @@ export async function deleteFixtureAction(formData: FormData) {
   }
 
   if (confirmation !== "DELETE") {
-    adminRedirect('Type the word "DELETE" exactly to confirm fixture deletion.');
+    adminRedirect(
+      'Type the word "DELETE" exactly to confirm fixture deletion.',
+    );
   }
 
   const supabase = await createClient();
@@ -242,14 +242,12 @@ export async function deleteFixtureAction(formData: FormData) {
 
   revalidateCompetitionPages();
 
-  const result = data as
-    | {
-        home_team?: string;
-        away_team?: string;
-        predictions_deleted?: number;
-        score_events_deleted?: number;
-      }
-    | null;
+  const result = data as {
+    home_team?: string;
+    away_team?: string;
+    predictions_deleted?: number;
+    score_events_deleted?: number;
+  } | null;
 
   const fixtureName = `${result?.home_team ?? "Fixture"} vs ${
     result?.away_team ?? "opponent"
@@ -267,67 +265,109 @@ export async function deleteFixtureAction(formData: FormData) {
 export async function syncOfficialResultsAction() {
   await requireAdmin();
 
+  let summary: Awaited<ReturnType<typeof syncFootballDataResults>>;
+
   try {
-    const summary = await syncFootballDataResults();
-    revalidateCompetitionPages();
-
-    const baseMessage =
-      `Checked ${summary.checked} official fixture(s); ` +
-      `${summary.completed} completed, ${summary.pending} still pending, ` +
-      `${summary.recalculated} points calculation(s) updated.`;
-
-    adminRedirect(
-      summary.errors.length > 0
-        ? `${baseMessage} ${summary.errors.length} item(s) need review.`
-        : baseMessage,
-    );
+    summary = await syncFootballDataResults();
   } catch (error) {
-    adminRedirect(
-      error instanceof Error
-        ? error.message
-        : "Unable to sync official results.",
-    );
+    adminRedirect(`Official result sync failed: ${getErrorMessage(error)}`);
   }
+
+  revalidateCompetitionPages();
+
+  const baseMessage =
+    `Checked ${summary.checked} official fixture(s); ` +
+    `${summary.completed} completed, ` +
+    `${summary.pending} still pending, ` +
+    `${summary.recalculated} points calculation(s) updated.`;
+
+  const finalMessage =
+    summary.errors.length > 0
+      ? `${baseMessage} ${summary.errors.length} item(s) need review.`
+      : baseMessage;
+
+  adminRedirect(finalMessage);
 }
 
 export async function updateRulesAction(formData: FormData) {
   await requireAdmin();
+
   const exactScorePoints = Number(formData.get("exactScorePoints"));
-  const correctOutcomePoints = Number(
-    formData.get("correctOutcomePoints"),
-  );
-  const winnerOnlyPoints = Number(formData.get("winnerOnlyPoints"));
+
+  const correctWinnerPoints = Number(formData.get("correctWinnerPoints"));
+
+  const correctDrawPoints = Number(formData.get("correctDrawPoints"));
+
+  const oneTeamScorePoints = Number(formData.get("oneTeamScorePoints"));
+
   const penaltyMode = String(formData.get("penaltyMode") ?? "pending");
+
   const entryNotes = String(formData.get("entryNotes") ?? "").trim();
 
+  const pointValues = [
+    exactScorePoints,
+    correctWinnerPoints,
+    correctDrawPoints,
+    oneTeamScorePoints,
+  ];
+
   if (
-    ![exactScorePoints, correctOutcomePoints, winnerOnlyPoints].every(
-      Number.isInteger,
+    !pointValues.every(
+      (value) => Number.isInteger(value) && value >= 0 && value <= 10,
     )
   ) {
-    adminRedirect("Rule points must be whole numbers.");
+    adminRedirect("All scoring values must be whole numbers between 0 and 10.");
   }
 
   const supabase = await createClient();
+
   const { error } = await supabase.from("rules").upsert({
     id: 1,
     exact_score_points: exactScorePoints,
-    correct_outcome_points: correctOutcomePoints,
-    winner_only_points: winnerOnlyPoints,
+    correct_winner_points: correctWinnerPoints,
+    correct_draw_points: correctDrawPoints,
+    one_team_score_points: oneTeamScorePoints,
+
+    // Keeps older code compatible.
+    correct_outcome_points: correctWinnerPoints,
+
     penalty_mode: penaltyMode,
     entry_notes: entryNotes,
     updated_at: new Date().toISOString(),
   });
-  if (error) adminRedirect(error.message);
+
+  if (error) {
+    adminRedirect(error.message);
+  }
 
   const { data: recalculated, error: recalculationError } = await supabase.rpc(
     "recalculate_all_completed_fixtures",
   );
-  if (recalculationError) adminRedirect(recalculationError.message);
+
+  if (recalculationError) {
+    adminRedirect(recalculationError.message);
+  }
 
   revalidateCompetitionPages();
-  revalidatePath("/rules");
+
   adminRedirect(
-    `Rules updated. ${Number(recalculated ?? 0)} completed fixture(s) were recalculated automatically.`,
+    `Rules saved. ${recalculated ?? 0} completed fixture(s) recalculated.`,
   );
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return "Unable to sync official results.";
 }

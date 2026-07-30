@@ -39,12 +39,33 @@ export type Prediction = {
 
 export type ClubRules = {
   exactScorePoints: number;
-  correctOutcomePoints: number;
+  correctWinnerPoints: number;
+  correctDrawPoints: number;
+  oneTeamScorePoints: number;
+
+  // Retained for existing knockout-rule compatibility.
   winnerOnlyPoints: number;
+
   penaltyMode:
     | "pending"
     | "ninety_minutes"
     | "after_extra_time"
     | "after_penalties";
+
   entryNotes: string;
+};
+
+export type ScoreEvent = {
+  fixtureId: string | null;
+  points: number;
+  eventType:
+    | "exact_score"
+    | "correct_winner"
+    | "correct_draw"
+    | "one_team_score"
+    | "correct_outcome"
+    | "winner_only"
+    | "no_points"
+    | "manual_adjustment";
+  reason: string | null;
 };

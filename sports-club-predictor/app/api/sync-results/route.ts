@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { syncFootballDataResults } from "@/lib/result-sync";
 
 export const dynamic = "force-dynamic";
@@ -6,15 +7,14 @@ export const runtime = "nodejs";
 
 function isAuthorised(request: Request) {
   const configuredSecret = process.env.RESULT_SYNC_SECRET?.trim();
+
   const providedSecret = request.headers
     .get("authorization")
     ?.replace(/^Bearer\s+/i, "")
     .trim();
 
   return Boolean(
-    configuredSecret &&
-      providedSecret &&
-      configuredSecret === providedSecret,
+    configuredSecret && providedSecret && configuredSecret === providedSecret,
   );
 }
 
@@ -25,7 +25,11 @@ async function handleRequest(request: Request) {
 
   try {
     const summary = await syncFootballDataResults();
-    return NextResponse.json({ ok: true, ...summary });
+
+    return NextResponse.json({
+      ok: true,
+      ...summary,
+    });
   } catch (error) {
     return NextResponse.json(
       {

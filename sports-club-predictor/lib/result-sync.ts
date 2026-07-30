@@ -113,8 +113,9 @@ export type ResultSyncSummary = {
 export async function syncFootballDataResults(): Promise<ResultSyncSummary> {
   const supabase = createAdminClient();
   const now = Date.now();
-  const windowStart = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const windowEnd = new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString();
+  const windowStart = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const windowEnd = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [fixtureResponse, ruleResponse] = await Promise.all([
     supabase
@@ -130,9 +131,17 @@ export async function syncFootballDataResults(): Promise<ResultSyncSummary> {
       .limit(40),
     supabase.from("rules").select("*").eq("id", 1).single(),
   ]);
+  if (fixtureResponse.error) {
+    throw new Error(
+      `Unable to read official fixtures: ${fixtureResponse.error.message}`,
+    );
+  }
 
-  if (fixtureResponse.error) throw fixtureResponse.error;
-  if (ruleResponse.error) throw ruleResponse.error;
+  if (ruleResponse.error) {
+    throw new Error(
+      `Unable to read scoring rules: ${ruleResponse.error.message}`,
+    );
+  }
 
   const fixtures = (fixtureResponse.data ?? []) as ImportedFixtureRow[];
   const rules = ruleResponse.data as RuleRow;
@@ -150,9 +159,7 @@ export async function syncFootballDataResults(): Promise<ResultSyncSummary> {
   const matches = await getFootballDataMatchesByIds(
     fixtures.map((fixture) => fixture.external_fixture_id),
   );
-  const matchById = new Map(
-    matches.map((match) => [String(match.id), match]),
-  );
+  const matchById = new Map(matches.map((match) => [String(match.id), match]));
 
   const summary: ResultSyncSummary = {
     checked: fixtures.length,
@@ -166,7 +173,9 @@ export async function syncFootballDataResults(): Promise<ResultSyncSummary> {
     const match = matchById.get(fixture.external_fixture_id);
 
     if (!match) {
-      summary.errors.push(`No API result returned for match ${fixture.external_fixture_id}.`);
+      summary.errors.push(
+        `No API result returned for match ${fixture.external_fixture_id}.`,
+      );
       continue;
     }
 
