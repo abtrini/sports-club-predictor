@@ -1,7 +1,12 @@
 import { demoFixtures, demoRules, demoStandings } from "@/lib/demo-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import type { ClubRules, Fixture, Standing } from "@/lib/types";
+import type {
+  ClubRules,
+  Fixture,
+  ScoreEventType,
+  Standing,
+} from "@/lib/types";
 
 type ParticipantRow = {
   id: string;
@@ -13,15 +18,7 @@ type ScoreEventRow = {
   participant_id: string;
   fixture_id: string | null;
   points: number;
-  event_type:
-    | "exact_score"
-    | "correct_winner"
-    | "correct_draw"
-    | "one_team_score"
-    | "correct_outcome"
-    | "winner_only"
-    | "no_points"
-    | "manual_adjustment";
+  event_type: ScoreEventType;
 };
 
 type FixtureRow = {
@@ -36,6 +33,12 @@ type FixtureRow = {
   status: Fixture["status"];
   home_score: number | null;
   away_score: number | null;
+  data_source: string | null;
+  external_fixture_id: string | null;
+  external_status: string | null;
+  result_basis: string | null;
+  result_synced_at: string | null;
+  points_calculated_at: string | null;
 };
 
 type RuleRow = {
@@ -119,28 +122,13 @@ export async function getFixtures(
 ): Promise<Fixture[]> {
   const { fallbackToDemo = true } = options;
 
-  if (!isSupabaseConfigured()) {
-    return demoFixtures;
-  }
+  if (!isSupabaseConfigured()) return demoFixtures;
 
   const supabase = await createClient();
-
   const { data, error } = await supabase
     .from("fixtures")
     .select(
-      `
-        id,
-        competition,
-        home_team,
-        away_team,
-        home_team_crest,
-        away_team_crest,
-        kickoff,
-        entry_deadline,
-        status,
-        home_score,
-        away_score
-      `,
+      "id, competition, home_team, away_team, home_team_crest, away_team_crest, kickoff, entry_deadline, status, home_score, away_score, data_source, external_fixture_id, external_status, result_basis, result_synced_at, points_calculated_at",
     )
     .order("kickoff", { ascending: true });
 
@@ -160,6 +148,12 @@ export async function getFixtures(
     status: fixture.status,
     homeScore: fixture.home_score,
     awayScore: fixture.away_score,
+    dataSource: fixture.data_source,
+    externalFixtureId: fixture.external_fixture_id,
+    externalStatus: fixture.external_status,
+    resultBasis: fixture.result_basis,
+    resultSyncedAt: fixture.result_synced_at,
+    pointsCalculatedAt: fixture.points_calculated_at,
   }));
 }
 
@@ -174,6 +168,7 @@ export async function getRules(): Promise<ClubRules> {
     .maybeSingle();
 
   if (error || !data) return demoRules;
+
   const rule = data as RuleRow;
 
   return {

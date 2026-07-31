@@ -2,8 +2,8 @@ name: Sync football results
 
 on:
   schedule:
-    # Runs hourly at minute 17. GitHub schedules use UTC.
     - cron: "17 * * * *"
+
   workflow_dispatch:
 
 jobs:
@@ -16,16 +16,48 @@ jobs:
         env:
           RESULT_SYNC_URL: ${{ secrets.RESULT_SYNC_URL }}
           RESULT_SYNC_SECRET: ${{ secrets.RESULT_SYNC_SECRET }}
+
         run: |
-          if [ -z "$RESULT_SYNC_URL" ] || [ -z "$RESULT_SYNC_SECRET" ]; then
-            echo "RESULT_SYNC_URL or RESULT_SYNC_SECRET is missing."
+          if [ -z "$RESULT_SYNC_URL" ]; then
+            echo "RESULT_SYNC_URL is missing."
             exit 1
           fi
 
-          curl \
-            --fail-with-body \
+          if [ -z "$RESULT_SYNC_SECRET" ]; then
+            echo "RESULT_SYNC_SECRET is missing."
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+
+          set +e
+
+          http_code=$(curl \
             --silent \
             --show-error \
-            --request GET \
+            --request POST \
             --header "Authorization: Bearer $RESULT_SYNC_SECRET" \
-            "$RESULT_SYNC_URL"
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            "$RESULT_SYNC_URL")
+
+          curl_exit=$?
+
+          set -e
+
+          echo "HTTP status: $http_code"
+          echo "Response:"
+          cat "$response_file"
+          echo
+
+          if [ "$curl_exit" -ne 0 ]; then
+            echo "curl failed with exit code $curl_exit."
+            exit "$curl_exit"
+          fi
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Result sync returned an unsuccessful HTTP status."
+            exit 1
+          fi
+
+          echo "Result sync completed successfully."
