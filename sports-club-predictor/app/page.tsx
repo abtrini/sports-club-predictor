@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { DeadlineCountdown } from "@/components/DeadlineCountdown";
 import { FixtureCard } from "@/components/FixtureCard";
+import { PlayerStatusPanel } from "@/components/PlayerStatusPanel";
 import { StandingsTable } from "@/components/StandingsTable";
 import { getCurrentUser } from "@/lib/auth";
 import { getFixtures, getStandings } from "@/lib/data";
+import { getPlayerDashboardStatus } from "@/lib/player-stats";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
@@ -16,19 +18,9 @@ export default async function HomePage() {
     getFixtures(),
   ]);
 
-  /*
-   * This page is force-dynamic. Capture one timestamp for this
-   * request so every fixture is sorted against the same moment.
-   */
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
-  /*
-   * Upcoming games:
-   * - exclude completed fixtures
-   * - exclude games whose kickoff has already passed
-   * - show the nearest kickoff first
-   */
   const upcomingFixtures = fixtures
     .filter(
       (fixture) =>
@@ -36,25 +28,18 @@ export default async function HomePage() {
         new Date(fixture.kickoff).getTime() >= now,
     )
     .sort(
-      (a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime(),
+      (a, b) =>
+        new Date(a.kickoff).getTime() -
+        new Date(b.kickoff).getTime(),
     );
 
   const nextFixtures = upcomingFixtures.slice(0, 4);
 
-  /*
-   * The countdown targets the first upcoming fixture whose
-   * prediction deadline has not yet passed.
-   */
   const nextOpenFixture = upcomingFixtures.find(
-    (fixture) => new Date(fixture.entryDeadline).getTime() > now,
+    (fixture) =>
+      new Date(fixture.entryDeadline).getTime() > now,
   );
 
-  /*
-   * Recent results:
-   * - completed fixtures only
-   * - both final scores must be present
-   * - most recently played game first
-   */
   const recentResults = fixtures
     .filter(
       (fixture) =>
@@ -63,25 +48,42 @@ export default async function HomePage() {
         fixture.awayScore !== null,
     )
     .sort(
-      (a, b) => new Date(b.kickoff).getTime() - new Date(a.kickoff).getTime(),
+      (a, b) =>
+        new Date(b.kickoff).getTime() -
+        new Date(a.kickoff).getTime(),
     )
     .slice(0, 4);
 
   const leader = standings[0];
 
   const participantPosition = user?.participantId
-    ? standings.findIndex((standing) => standing.id === user.participantId) + 1
+    ? standings.findIndex(
+        (standing) => standing.id === user.participantId,
+      ) + 1
     : 0;
 
   const participantStanding =
-    participantPosition > 0 ? standings[participantPosition - 1] : null;
+    participantPosition > 0
+      ? standings[participantPosition - 1]
+      : null;
+
+  const playerStatus = user?.participantId
+    ? await getPlayerDashboardStatus({
+        participantId: user.participantId,
+        fixtures,
+        standings,
+        now,
+      })
+    : null;
 
   return (
     <>
       <section className="hero">
         <div className="page-width hero-grid">
           <div>
-            <p className="eyebrow">2026/27 FRIENDLY PREDICTION LEAGUE</p>
+            <p className="eyebrow">
+              2026/27 FRIENDLY PREDICTION LEAGUE
+            </p>
 
             <h1>
               Every score counts.
@@ -99,29 +101,47 @@ export default async function HomePage() {
               {user ? (
                 <>
                   {user.role === "admin" ? (
-                    <Link className="button button-primary" href="/admin">
+                    <Link
+                      className="button button-primary"
+                      href="/admin"
+                    >
                       Open Admin Portal
                     </Link>
                   ) : (
-                    <Link className="button button-primary" href="/predictions">
+                    <Link
+                      className="button button-primary"
+                      href="/predictions"
+                    >
                       Enter predictions
                     </Link>
                   )}
 
                   <Link
                     className="button button-secondary"
-                    href={user.role === "admin" ? "/predictions" : "/fixtures"}
+                    href={
+                      user.role === "admin"
+                        ? "/predictions"
+                        : "/fixtures"
+                    }
                   >
-                    {user.role === "admin" ? "My predictions" : "View fixtures"}
+                    {user.role === "admin"
+                      ? "My predictions"
+                      : "View fixtures"}
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link className="button button-primary" href="/register">
+                  <Link
+                    className="button button-primary"
+                    href="/register"
+                  >
                     Register as a player
                   </Link>
 
-                  <Link className="button button-secondary" href="/login">
+                  <Link
+                    className="button button-secondary"
+                    href="/login"
+                  >
                     Sign in
                   </Link>
                 </>
@@ -143,9 +163,13 @@ export default async function HomePage() {
             ) : (
               <>
                 <span>Current leader</span>
-                <strong>{leader?.name ?? "No participants yet"}</strong>
+                <strong>
+                  {leader?.name ?? "No participants yet"}
+                </strong>
                 <b>{leader?.points ?? 0} pts</b>
-                <small>{leader?.exactHits ?? 0} exact-score hits</small>
+                <small>
+                  {leader?.exactHits ?? 0} exact-score hits
+                </small>
               </>
             )}
           </div>
@@ -155,9 +179,9 @@ export default async function HomePage() {
       {!isSupabaseConfigured() && (
         <section className="page-width">
           <div className="notice">
-            <strong>Demo mode:</strong> sample data is being displayed. Connect
-            Supabase using the included setup guide to save real participants
-            and points.
+            <strong>Demo mode:</strong> sample data is being
+            displayed. Connect Supabase using the included setup
+            guide to save real participants and points.
           </div>
         </section>
       )}
@@ -172,12 +196,22 @@ export default async function HomePage() {
         </section>
       )}
 
+      {playerStatus && (
+        <section className="page-width player-status-section">
+          <PlayerStatusPanel status={playerStatus} />
+        </section>
+      )}
+
       <section className="page-width section-block">
         <div className="section-heading">
           <div>
-            <p className="eyebrow dark">NEXT SELECTED GAMES</p>
+            <p className="eyebrow dark">
+              NEXT SELECTED GAMES
+            </p>
             <h2>Upcoming fixtures</h2>
-            <p>The nearest scheduled games are shown first.</p>
+            <p>
+              The nearest scheduled games are shown first.
+            </p>
           </div>
 
           <Link href="/fixtures">See all fixtures →</Link>
@@ -186,13 +220,19 @@ export default async function HomePage() {
         {nextFixtures.length > 0 ? (
           <div className="fixture-grid">
             {nextFixtures.map((fixture) => (
-              <FixtureCard key={fixture.id} fixture={fixture} />
+              <FixtureCard
+                key={fixture.id}
+                fixture={fixture}
+              />
             ))}
           </div>
         ) : (
           <div className="content-card empty-state">
             <h3>No upcoming fixtures</h3>
-            <p>The administrator has not selected the next games yet.</p>
+            <p>
+              The administrator has not selected the next games
+              yet.
+            </p>
           </div>
         )}
       </section>
@@ -200,9 +240,14 @@ export default async function HomePage() {
       <section className="page-width section-block">
         <div className="section-heading">
           <div>
-            <p className="eyebrow dark">LAST SELECTED FIXTURES</p>
+            <p className="eyebrow dark">
+              LAST SELECTED FIXTURES
+            </p>
             <h2>Recent results</h2>
-            <p>The latest completed prediction fixtures are shown here.</p>
+            <p>
+              The latest completed prediction fixtures are shown
+              here.
+            </p>
           </div>
 
           <Link href="/fixtures">View all results →</Link>
@@ -211,15 +256,19 @@ export default async function HomePage() {
         {recentResults.length > 0 ? (
           <div className="fixture-grid">
             {recentResults.map((fixture) => (
-              <FixtureCard key={fixture.id} fixture={fixture} />
+              <FixtureCard
+                key={fixture.id}
+                fixture={fixture}
+              />
             ))}
           </div>
         ) : (
           <div className="content-card empty-state">
             <h3>No completed results</h3>
             <p>
-              Completed fixture scores will appear here after they are received
-              from the API or entered by an administrator.
+              Completed fixture scores will appear here after they
+              are received from the API or entered by an
+              administrator.
             </p>
           </div>
         )}
@@ -230,9 +279,18 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow dark">LIVE TABLE</p>
             <h2>Club standings</h2>
+            <p>
+              Select a participant&apos;s name to view their
+              statistics profile.
+            </p>
           </div>
 
-          <Link href="/standings">View full standings →</Link>
+          <div className="section-heading-actions">
+            <Link href="/players">Player profiles →</Link>
+            <Link href="/standings">
+              View full standings →
+            </Link>
+          </div>
         </div>
 
         <StandingsTable standings={standings} />

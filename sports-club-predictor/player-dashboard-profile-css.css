@@ -1,0 +1,389 @@
+/* Paste this complete section at the bottom of app/globals.css */
+
+/* =========================================================
+   PLAYER PREDICTION STATUS
+   ========================================================= */
+
+.player-status-section {
+  margin-top: 26px;
+}
+
+.player-status-panel {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.player-status-attention {
+  border-left: 7px solid #d97706;
+  background: #fffaf0;
+}
+
+.player-status-complete {
+  border-left: 7px solid #15803d;
+  background: #f5fff8;
+}
+
+.player-status-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.player-status-heading h2 {
+  margin: 4px 0 6px;
+}
+
+.player-status-heading p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.player-status-actions,
+.section-heading-actions,
+.profile-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.player-status-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.player-status-metrics div {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.player-status-metrics span,
+.player-status-metrics strong {
+  display: block;
+}
+
+.player-status-metrics span {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.player-status-metrics strong {
+  margin-top: 6px;
+  font-size: 1.65rem;
+}
+
+.prediction-completion-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dfe7ef;
+}
+
+.prediction-completion-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f6fd8, #17a8df);
+  transition: width 250ms ease;
+}
+
+/* =========================================================
+   PLAYER DIRECTORY AND PROFILE
+   ========================================================= */
+
+.participant-profile-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.participant-profile-link:hover .participant-cell > span:last-child,
+.participant-profile-link:focus-visible .participant-cell > span:last-child {
+  text-decoration: underline;
+}
+
+.player-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.player-directory-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: var(--shadow);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.player-directory-card:hover,
+.player-directory-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--blue);
+}
+
+.player-directory-card div,
+.player-directory-card small,
+.player-directory-card strong,
+.player-directory-card span {
+  display: block;
+}
+
+.player-directory-card small,
+.player-directory-card span {
+  color: var(--muted);
+}
+
+.player-directory-card strong {
+  margin: 3px 0;
+  font-size: 1.05rem;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(25, 156, 221, 0.18),
+      transparent 34%
+    ),
+    white;
+  box-shadow: var(--shadow);
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.profile-identity h1 {
+  margin: 3px 0 5px;
+}
+
+.profile-identity p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.profile-avatar {
+  display: grid;
+  width: 82px;
+  height: 82px;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(135deg, #0b3974, #159bd7);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.profile-avatar-small {
+  width: 52px;
+  height: 52px;
+  font-size: 1rem;
+}
+
+.profile-rank-card {
+  min-width: 190px;
+  padding: 18px;
+  text-align: center;
+  border-radius: 16px;
+  color: white;
+  background: #0b3974;
+}
+
+.profile-rank-card span,
+.profile-rank-card strong,
+.profile-rank-card small {
+  display: block;
+}
+
+.profile-rank-card strong {
+  margin: 4px 0;
+  font-size: 2.5rem;
+}
+
+.profile-rank-card small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.profile-page-actions {
+  margin: 18px 0 34px;
+}
+
+.profile-stats-section {
+  margin-top: 42px;
+}
+
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-stat-card {
+  min-height: 135px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.profile-stat-card span,
+.profile-stat-card strong,
+.profile-stat-card small {
+  display: block;
+}
+
+.profile-stat-card span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-stat-card strong {
+  margin-top: 10px;
+  font-size: 2rem;
+}
+
+.profile-stat-card small {
+  margin-top: 7px;
+  color: var(--muted);
+}
+
+.featured-profile-stat {
+  color: white;
+  border-color: #0b3974;
+  background: #0b3974;
+}
+
+.featured-profile-stat span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.recent-form-list {
+  display: grid;
+  gap: 12px;
+}
+
+.recent-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.recent-form-match {
+  display: grid;
+  gap: 4px;
+}
+
+.recent-form-match small,
+.recent-form-match span {
+  color: var(--muted);
+}
+
+.recent-form-points {
+  display: inline-flex;
+  min-width: 72px;
+  justify-content: center;
+  padding: 9px 12px;
+  border-radius: 999px;
+}
+
+.recent-form-positive {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.recent-form-zero {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.profile-history-note {
+  margin-top: 30px;
+}
+
+@media (max-width: 1050px) {
+  .profile-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .player-directory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .player-status-heading,
+  .profile-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .player-status-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-rank-card {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .player-status-metrics,
+  .profile-stats-grid,
+  .player-directory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recent-form-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
